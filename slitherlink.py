@@ -41,15 +41,30 @@ class SlitherlinkState:
 
 class Board:
     """Representação interna de um tabuleiro de Slitherlink."""
+    def __init__(self, board: tuple):
+        self = board
+        self.rows = len(board)
+        self.column = len(board[0])
+
 
     def adjacent_cell(self, cell:tuple) -> list:
         """Devolve uma lista das células que fazem
         fronteira com a célula enviada no argumento"""
-        #TODO
-        pass
+        row, column =  cell
+        adjacents = []
+        if row > 0:
+            adjacents.append(self[row-1][column])
+        if row < self.rows - 1:
+            adjacents.append(self[row + 1][column])
+        if column > 0:
+            adjacents.append(self[row][column - 1])
+        if column < self.column - 1:
+            adjacents.append(self[row][column + 1])
+        return adjacents
 
     def get_cell_edges(self, row:int, column:int) -> list:
         """Devolve os arestas da célula enviada no argumento"""
+        """perguntar dps aos stores como é a melhor forma de aplicar as edges"""
         #TODO
         pass
 
@@ -70,8 +85,25 @@ class Board:
             > from sys import stdin
             > line = stdin.readline().split()
         """
-        # TODO
-        pass
+        lines = stdin.readlines()
+        boardtemp = []
+
+        for line in lines:
+            cleanline = line.split()
+            linelist = []
+
+            if not cleanline:
+                continue
+
+            for char in cleanline:
+                if char == '.':
+                    linelist.append(-1)
+                else:
+                    linelist.append(int(char))
+            boardtemp.append(tuple(linelist))
+        
+        boardtuple = tuple(boardtemp) 
+        return Board(boardtuple)
 
     # TODO: outros metodos da classe
 
