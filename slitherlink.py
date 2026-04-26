@@ -103,7 +103,11 @@ class Board:
             boardtemp.append(tuple(linelist))
         
         boardtuple = tuple(boardtemp) 
-        return Board(boardtuple)
+
+        print("\nola\n")
+        return boardtuple
+
+        #return Board(boardtuple)
 
     # TODO: outros metodos da classe
 
@@ -150,7 +154,10 @@ if __name__ == "__main__":
     # Usar uma técnica de procura para resolver a instância,
     # Retirar a solução a partir do nó resultante,
     # Imprimir para o standard output no formato indicado.
-    pass
+    #pass
+
+    output = Board.parse_instance()
+    print(output)
 
 
 
