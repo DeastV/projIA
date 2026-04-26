@@ -29,10 +29,12 @@ class SlitherlinkState:
     state_id = 0
 
 
-    def __init__(self, board):
+    def __init__(self, board, h_edges, v_edges):
         self.board = board
         self.id = SlitherlinkState.state_id
         SlitherlinkState.state_id += 1
+        self.h_edges = h_edges
+        self.v_edges = v_edges
     
     def __lt__(self, other):
         return self.id < other.id
@@ -42,9 +44,11 @@ class SlitherlinkState:
 class Board:
     """Representação interna de um tabuleiro de Slitherlink."""
     def __init__(self, board: tuple):
-        self = board
+        self.board = board
         self.rows = len(board)
-        self.column = len(board[0])
+        self.columns = len(board[0])
+        self.h_edges = tuple(tuple(0 for _ in range(self.columns)) for _ in range(self.rows + 1))
+        self.v_edges = tuple(tuple(0 for _ in range(self.columns + 1)) for _ in range(self.rows))
 
 
     def adjacent_cell(self, cell:tuple) -> list:
@@ -65,13 +69,26 @@ class Board:
     def get_cell_edges(self, row:int, column:int) -> list:
         """Devolve os arestas da célula enviada no argumento"""
         """perguntar dps aos stores como é a melhor forma de aplicar as edges"""
-        #TODO
-        pass
-
-    def get_active_edges(self, row:int, column:int) -> list:
+        vertical_edges = [("V", row, column), ("V", row, column + 1)]
+        
+        horizontal_edges = [("H", row, column),("H", row + 1, column)]
+        
+        return vertical_edges + horizontal_edges
+        
+    def get_active_edges(self, state: SlitherlinkState, row:int, column:int) -> int:
         """Devolve o número de arestas ativas"""
-        #TODO
-        pass
+        all_edges = self.get_cell_edges(row, column)
+        num_active_edges = 0
+        for type, r, c in all_edges:
+            if type == 'V':
+                if state.v_edges[r][c] == 1:
+                    num_active_edges += 1
+            else:
+                if state.h_edges[r][c] == 1:
+                    num_active_edges += 1
+
+        return num_active_edges
+        
 
 
     @staticmethod
@@ -104,10 +121,7 @@ class Board:
         
         boardtuple = tuple(boardtemp) 
 
-        print("\nola\n")
-        return boardtuple
-
-        #return Board(boardtuple)
+        return Board(boardtuple)
 
     # TODO: outros metodos da classe
 
@@ -155,9 +169,9 @@ if __name__ == "__main__":
     # Retirar a solução a partir do nó resultante,
     # Imprimir para o standard output no formato indicado.
     #pass
-
-    output = Board.parse_instance()
-    print(output)
+    
+    board = Board.parse_instance()
+    print(board)
 
 
 
