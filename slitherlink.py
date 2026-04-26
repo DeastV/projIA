@@ -61,13 +61,13 @@ class Board:
         row, column =  cell
         adjacents = []
         if row > 0:
-            adjacents.append(self[row-1][column])
+            adjacents.append(self.board[row-1][column])
         if row < self.rows - 1:
-            adjacents.append(self[row + 1][column])
+            adjacents.append(self.board[row + 1][column])
         if column > 0:
-            adjacents.append(self[row][column - 1])
+            adjacents.append(self.board[row][column - 1])
         if column < self.columns - 1:
-            adjacents.append(self[row][column + 1])
+            adjacents.append(self.board[row][column + 1])
         return adjacents
 
     def get_cell_edges(self, row:int, column:int) -> list:
@@ -178,7 +178,20 @@ if __name__ == "__main__":
     #pass
     
     board = Board.parse_instance()
-    print(board)
+    adj_cells = board.adjacent_cell((1,1))
+    cell_edges = board.get_cell_edges(1,1)
+    num_active_edges = board.get_active_edges(SlitherlinkState(board.board, board.h_edges, board.v_edges), 1, 1)
+
+    print("\nBOARD:")
+    print(board.board)
+
+    print("\nADJACENT CELLS:")
+    print(adj_cells)
+
+    print("\nCELL EDGES:")
+    print(cell_edges)
+
+    print("\nNUM ACTIVE EDGES: ", num_active_edges, "\n")
 
 
 
