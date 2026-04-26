@@ -3,9 +3,9 @@
 # Devem alterar as classes e funções neste ficheiro de acordo com as instruções do enunciado.
 # Além das funções e classes sugeridas, podem acrescentar outras que considerem pertinentes.
 
-# Grupo 00:
-# 00000 Nome1
-# 00000 Nome2
+# Grupo 19:
+# 113779 Leonor Machado
+# 113931 David Vasques
 
 import random, copy
 from sys import stdin
@@ -24,6 +24,7 @@ from search import (
     recursive_best_first_search,
 )
 
+# ── SlitherlinkState ──────────────────────────────────────────────────────────
 
 class SlitherlinkState:
     state_id = 0
@@ -40,6 +41,9 @@ class SlitherlinkState:
         return self.id < other.id
 
     # TODO: outros metodos da classe
+
+
+# ── Board ─────────────────────────────────────────────────────────────────────
 
 class Board:
     """Representação interna de um tabuleiro de Slitherlink."""
@@ -62,7 +66,7 @@ class Board:
             adjacents.append(self[row + 1][column])
         if column > 0:
             adjacents.append(self[row][column - 1])
-        if column < self.column - 1:
+        if column < self.columns - 1:
             adjacents.append(self[row][column + 1])
         return adjacents
 
@@ -125,6 +129,9 @@ class Board:
 
     # TODO: outros metodos da classe
 
+
+# ── Slitherlink ───────────────────────────────────────────────────────────────
+
 class Slitherlink(Problem):
     def __init__(self, board: Board, gui=None):
         """O construtor especifica o estado inicial."""
@@ -159,8 +166,8 @@ class Slitherlink(Problem):
         # TODO
         pass
 
-    
 
+# ── __main__ ───────────────────────────────────────────────────────────────———
 
 if __name__ == "__main__":
     # TODO:
