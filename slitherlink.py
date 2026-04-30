@@ -179,6 +179,12 @@ class Slitherlink(Problem):
         """Retorna uma lista de ações que podem ser executadas a
         partir do estado passado como argumento."""
         #cada ação vai ser composta pela informação de onde está a arresta e o que fazer com ela
+        # -2 = x
+        # para poder por uma cruz preciso saber:
+                        #  se ao colocar vou impedir que a cell seja completa
+                        #  ou seja tenho que verificar ambas as celulas da arresta
+                        #  verificar se essas celulas existem existem
+                        #  verificar se a celula tem um numero
         
         for r in range(self.board.rows):
             for c in range(self.board.columns):
@@ -189,49 +195,67 @@ class Slitherlink(Problem):
                 for type, r_edge, c_edge in cell_edges:
 
                     actions = []
-                    cell = self.board.get_unknown_edges(state, r_edge, c_edge)
                     
                     if type == 'H' and state.h_edges[r_edge][c_edge] == 0:
-
-                        is_down = True
-                        if r_edge < self.board.rows:
-                            is_down = not self.board.is_limit_reached(state, r_edge, c_edge)
 
                         is_up = True
                         if r_edge > 0:
                             is_up = not self.board.is_limit_reached(state, r_edge - 1, c_edge)
 
-                        if cell == self.board[r_edge][c_edge]:
-                            actions.append(('H', r_edge, c_edge, 2))
-
-                        if cell == self.board[r_edge - 1][c_edge]:
-                            actions.append(('H', r_edge - 1, c_edge, 2))
-
+                        is_down = True
+                        if r_edge < self.board.rows:
+                            is_down = not self.board.is_limit_reached(state, r_edge, c_edge)
+                        
                         if is_down and is_up:
                             actions.append(('H', r_edge, c_edge, 1))
-                            return actions
+                        
+                        is_up = True
+                        if r_edge > 0:
+                            cell = self.board.board[r_edge - 1][c_edge]
+                            if cell != -1 and (self.board.get_unknown_edges(state, r_edge - 1, c_edge) - 1) + (self.board.get_active_edges(state, r_edge - 1, c_edge)) < cell:
+                                is_up = False
+
+                        is_down = True
+                        if r_edge < self.board.rows:
+                            cell = self.board.board[r_edge][c_edge]
+                            if cell != -1 and (self.board.get_unknown_edges(state, r_edge, c_edge) - 1) + (self.board.get_active_edges(state, r_edge, c_edge)) < cell:
+                                is_down = False
+
+                        if is_down and is_up:
+                            actions.append(('H', r_edge, c_edge, 2))
+
+                        return actions
 
                     elif type == 'V' and state.v_edges[r_edge][c_edge] == 0:
-
-                        is_right = True
-                        if c_edge < self.board.columns:
-                            is_right = not self.board.is_limit_reached(state, r_edge, c_edge)
 
                         is_left = True
                         if c_edge > 0:
                             is_left = not self.board.is_limit_reached(state, r_edge, c_edge - 1)
 
-                        if cell == self.board[r_edge][c_edge]:
-                            actions.append(('V', r_edge, c_edge, 2))
-
-                        if cell == self.board[r_edge][c_edge - 1]:
-                            actions.append(('V', r_edge, c_edge - 1, 2))
+                        is_right = True
+                        if c_edge < self.board.columns:
+                            is_right = not self.board.is_limit_reached(state, r_edge, c_edge)
 
                         if is_left and is_right:
                             actions.append(('V', r_edge, c_edge, 1))
-                            return actions
 
+                        is_left = True
+                        if c_edge > 0:
+                            cell = self.board.board[r_edge][c_edge - 1]
+                            if cell != -1 and (self.board.get_unknown_edges(state, r_edge, c_edge - 1) - 1) + (self.board.get_active_edges(state, r_edge, c_edge - 1)) < cell:
+                                is_left = False
 
+                        is_right = True
+                        if c_edge < self.board.rows:
+                            cell = self.board.board[r_edge][c_edge]
+                            if cell != -1 and (self.board.get_unknown_edges(state, r_edge, c_edge) - 1) + (self.board.get_active_edges(state, r_edge, c_edge)) < cell:
+                                is_right = False
+
+                        if is_left and is_right:
+                            actions.append(('V', r_edge, c_edge, 2))
+                        
+                        return actions
+                    
         return []
     
 
@@ -241,17 +265,29 @@ class Slitherlink(Problem):
         'state' passado como argumento. A ação a executar deve ser uma
         das presentes na lista obtida pela execução de
         self.actions(state)."""
-        #if action in self.actions(state):
+        h_edges = [list(line) for line in state.h_edges]
+        v_edges = [list(line) for line in state.v_edges]
 
-            # SlitherlinkState(action, action)
+        type, r_edge, c_edge, do = action
+        
+        if type == 'H':
+            h_edges[r_edge][c_edge] = do
 
-        # TODO
-        pass
+        if type == 'V':
+            v_edges[r_edge][c_edge] = do
+            
+        h_edges_state = tuple(tuple(line) for line in h_edges)
+        v_edges_state = tuple(tuple(line) for line in v_edges)
+
+        return SlitherlinkState(h_edges_state, v_edges_state)
+
 
     def goal_test(self, state: SlitherlinkState):
         """Retorna True se e só se o estado passado como argumento é
         um estado objetivo. Deve verificar se todas as posições do tabuleiro
         estão preenchidas de acordo com as regras do problema."""
+        #verificar que todas as celulas com numero têm o numero certo de arestas ativas
+        #verificar se o loop ta fechado 
         # TODO
         pass
 
@@ -264,35 +300,82 @@ class Slitherlink(Problem):
 # ── __main__ ───────────────────────────────────────────────────────────────———
 
 if __name__ == "__main__":
-    # TODO:
-    # Ler o ficheiro do standard input,
-    # Usar uma técnica de procura para resolver a instância,
-    # Retirar a solução a partir do nó resultante,
-    # Imprimir para o standard output no formato indicado.
-    #pass
     
     board = Board.parse_instance()
 
     if board is None:
-        print("deu merda")
+        print("Erro ao ler o tabuleiro.")
     else:
-        adj_cells = board.adjacent_cell((1,1))
-        cell_edges = board.get_cell_edges(1,1)
-        num_active_edges = board.get_active_edges(SlitherlinkState(board.board, board.h_edges, board.v_edges), 1, 1)
+        state = SlitherlinkState(board.h_edges, board.v_edges)
+        problem = Slitherlink(board)
 
-        print("\nBOARD:")
-        print(board.board)
+        print("\n=== A EXECUTAR TESTE DE 10 JOGADAS ===")
+        estado_atual = state
 
-        print("\nADJACENT CELLS:")
-        print(adj_cells)
+        for i in range(20):
+            acoes_possiveis = problem.actions(estado_atual)
+            print(acoes_possiveis)
+            if not acoes_possiveis:
+                print(f"\nJogada {i+1}: Beco sem saída! Não há mais ações possíveis.")
+                break
 
-        print("\nCELL EDGES:")
-        print(cell_edges)
+            acao_escolhida = acoes_possiveis[0]
+            print(f"\n\n==================================================")
+            print(f"--- Jogada {i+1}: A aplicar ação {acao_escolhida} ---")
+            print(f"==================================================")
 
-        print("\nNUM ACTIVE EDGES: ", num_active_edges, "\n")
+            estado_atual = problem.result(estado_atual, acao_escolhida)
 
+            # ----------------------------------------------------
+            # 1. FORMATO OFICIAL (TRBL)
+            # ----------------------------------------------------
+            print("\n> Formato de Output Oficial:")
+            for r in range(board.rows):
+                linha_output = []
+                for c in range(board.columns):
+                    top = estado_atual.h_edges[r][c]
+                    right = estado_atual.v_edges[r][c + 1]
+                    bottom = estado_atual.h_edges[r + 1][c]
+                    left = estado_atual.v_edges[r][c]
+                    cell_string = f"{top}{right}{bottom}{left}"
+                    linha_output.append(cell_string)
+                print(" ".join(linha_output))
 
+            # ----------------------------------------------------
+            # 2. FORMATO VISUAL (Grelha Desenhada)
+            # ----------------------------------------------------
+            print("\n> Formato Visual (Arestas Ativas):")
+            for r in range(board.rows):
+                # Imprimir as arestas HORIZONTAIS de cima desta linha
+                h_line = "+"
+                for c in range(board.columns):
+                    if estado_atual.h_edges[r][c] == 1:
+                        h_line += "---+"
+                    else:
+                        h_line += "   +"
+                print(h_line)
 
+                # Imprimir as arestas VERTICAIS e os números das células
+                v_line = ""
+                for c in range(board.columns):
+                    edge = "|" if estado_atual.v_edges[r][c] == 1 else " "
+                    val = board.board[r][c]
+                    cell_str = "." if val == -1 else str(val)
+                    v_line += f"{edge} {cell_str} "
+                
+                # Falta a última aresta vertical à direita do tabuleiro
+                last_edge = "|" if estado_atual.v_edges[r][board.columns] == 1 else " "
+                v_line += last_edge
+                print(v_line)
+
+            # Imprimir a ÚLTIMA linha de arestas horizontais (fundo do tabuleiro)
+            h_line = "+"
+            for c in range(board.columns):
+                if estado_atual.h_edges[board.rows][c] == 1:
+                    h_line += "---+"
+                else:
+                    h_line += "   +"
+            print(h_line)
 
 
 
