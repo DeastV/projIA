@@ -241,18 +241,9 @@ class Slitherlink(Problem):
         super().__init__(initial)
 
 
-
     def actions(self, state: SlitherlinkState):
         """Retorna uma lista de ações que podem ser executadas a
-        partir do estado passado como argumento."""
-        #cada ação vai ser composta pela informação de onde está a arresta e o que fazer com ela
-        # -2 = x
-        # para poder por uma cruz preciso saber:
-                        #  se ao colocar vou impedir que a cell seja completa
-                        #  ou seja tenho que verificar ambas as celulas da arresta
-                        #  verificar se essas celulas existem existem
-                        #  verificar se a celula tem um numero
-        
+        partir do estado passado como argumento."""        
         for r in range(self.board.rows):
             for c in range(self.board.columns):
                 
@@ -264,35 +255,40 @@ class Slitherlink(Problem):
                     actions = []
                     
                     if type == 'H' and state.h_edges[r_edge][c_edge] == 0:
-
+                        #Existe cima? Se sim verfica se o limite dessa celula ja foi alcançado
                         is_up = True
                         if r_edge > 0:
                             is_up = not self.board.is_limit_reached(state, r_edge - 1, c_edge)
 
+                        #Existe baixo? Se sim verfica se o limite dessa celula ja foi alcançado
                         is_down = True
                         if r_edge < self.board.rows:
                             is_down = not self.board.is_limit_reached(state, r_edge, c_edge)
                         
+                        #Caso tudo esteja ok, adiciona a arresta a lista de açoes
                         if is_down and is_up and self.board.is_ok_active(state, ('H', r_edge, c_edge)):
                             actions.append(('H', r_edge, c_edge, 1))
                         
+                        #Existe cima? Se sim verifica se colocar um X a celula ainda é possivel de completar
                         is_up = True
                         if r_edge > 0:
                             cell = self.board.board[r_edge - 1][c_edge]
                             if cell != -1 and (self.board.get_unknown_edges(state, r_edge - 1, c_edge) - 1) + (self.board.get_active_edges(state, r_edge - 1, c_edge)) < cell:
                                 is_up = False
 
+                        #Existe baixo? Se sim verifica se colocar um X a celula ainda é possivel de completar
                         is_down = True
                         if r_edge < self.board.rows:
                             cell = self.board.board[r_edge][c_edge]
                             if cell != -1 and (self.board.get_unknown_edges(state, r_edge, c_edge) - 1) + (self.board.get_active_edges(state, r_edge, c_edge)) < cell:
                                 is_down = False
 
+                        #Caso tudo esteja ok, adiciona por X a lista de açoes
                         if is_down and is_up and self.board.is_ok_blocked(state, ('H', r_edge, c_edge)):
                             actions.append(('H', r_edge, c_edge, 2))
 
                         return actions
-
+                    #exatamente a mesma logica porem para as Verticais
                     elif type == 'V' and state.v_edges[r_edge][c_edge] == 0:
 
                         is_left = True
@@ -313,7 +309,7 @@ class Slitherlink(Problem):
                                 is_left = False
 
                         is_right = True
-                        if c_edge < self.board.rows:
+                        if c_edge < self.board.columns:
                             cell = self.board.board[r_edge][c_edge]
                             if cell != -1 and (self.board.get_unknown_edges(state, r_edge, c_edge) - 1) + (self.board.get_active_edges(state, r_edge, c_edge)) < cell:
                                 is_right = False
@@ -430,11 +426,27 @@ class Slitherlink(Problem):
 
     def h(self, node: Node):
         """Função heuristica utilizada para a procura A*."""
+        #Verifica se está mais próximo de chegar a uma solução
         # TODO
         pass
 
 
 # ── __main__ ───────────────────────────────────────────────────────────────———
+
+def print_official(board: Board, state: SlitherlinkState):
+    for r in range(board.rows):
+        linha = []
+        for c in range(board.columns):
+            top    = state.h_edges[r][c]
+            right  = state.v_edges[r][c + 1]
+            bottom = state.h_edges[r + 1][c]
+            left   = state.v_edges[r][c]
+            
+            def normaliza(v):
+                return 1 if v == 1 else 0
+            
+            linha.append(f"{normaliza(top)}{normaliza(right)}{normaliza(bottom)}{normaliza(left)}")
+        print(" ".join(linha))
 
 if __name__ == "__main__":
     
@@ -443,77 +455,12 @@ if __name__ == "__main__":
     if board is None:
         print("Erro ao ler o tabuleiro.")
     else:
-        state = SlitherlinkState(board.h_edges, board.v_edges)
+        initial_state = SlitherlinkState(board.h_edges, board.v_edges)
         problem = Slitherlink(board)
-
-        print("\n=== A EXECUTAR TESTE DE 10 JOGADAS ===")
-        estado_atual = state
-
-        for i in range(36):
-            acoes_possiveis = problem.actions(estado_atual)
-            print(acoes_possiveis)
-            if not acoes_possiveis:
-                print(f"\nJogada {i+1}: Beco sem saída! Não há mais ações possíveis.")
-                break
-
-            acao_escolhida = acoes_possiveis[0]
-            print(f"\n\n==================================================")
-            print(f"--- Jogada {i+1}: A aplicar ação {acao_escolhida} ---")
-            print(f"==================================================")
-
-            estado_atual = problem.result(estado_atual, acao_escolhida)
-
-            # ----------------------------------------------------
-            # 1. FORMATO OFICIAL (TRBL)
-            # ----------------------------------------------------
-            print("\n> Formato de Output Oficial:")
-            for r in range(board.rows):
-                linha_output = []
-                for c in range(board.columns):
-                    top = estado_atual.h_edges[r][c]
-                    right = estado_atual.v_edges[r][c + 1]
-                    bottom = estado_atual.h_edges[r + 1][c]
-                    left = estado_atual.v_edges[r][c]
-                    cell_string = f"{top}{right}{bottom}{left}"
-                    linha_output.append(cell_string)
-                print(" ".join(linha_output))
-
-            # ----------------------------------------------------
-            # 2. FORMATO VISUAL (Grelha Desenhada)
-            # ----------------------------------------------------
-            print("\n> Formato Visual (Arestas Ativas):")
-            for r in range(board.rows):
-                # Imprimir as arestas HORIZONTAIS de cima desta linha
-                h_line = "+"
-                for c in range(board.columns):
-                    if estado_atual.h_edges[r][c] == 1:
-                        h_line += "---+"
-                    else:
-                        h_line += "   +"
-                print(h_line)
-
-                # Imprimir as arestas VERTICAIS e os números das células
-                v_line = ""
-                for c in range(board.columns):
-                    edge = "|" if estado_atual.v_edges[r][c] == 1 else " "
-                    val = board.board[r][c]
-                    cell_str = "." if val == -1 else str(val)
-                    v_line += f"{edge} {cell_str} "
-                
-                # Falta a última aresta vertical à direita do tabuleiro
-                last_edge = "|" if estado_atual.v_edges[r][board.columns] == 1 else " "
-                v_line += last_edge
-                print(v_line)
-
-            # Imprimir a ÚLTIMA linha de arestas horizontais (fundo do tabuleiro)
-            h_line = "+"
-            for c in range(board.columns):
-                if estado_atual.h_edges[board.rows][c] == 1:
-                    h_line += "---+"
-                else:
-                    h_line += "   +"
-            print(h_line)
-
-
-
-
+        solution_node = breadth_first_tree_search(problem)
+        if solution_node is None:
+            print("Erro na solução")
+        else:
+            solution_state = solution_node.state
+            path = solution_node.path()
+            print_official(board, solution_state)
