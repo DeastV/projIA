@@ -75,7 +75,7 @@ class Board:
     def get_cell_edges(self, row:int, column:int) -> list:
         """Devolve os arestas da célula enviada no argumento"""
         if row < 0 or column < 0 or row >= self.rows or column >= self.columns:
-            return None
+            return [] #tem que devolver um erro
         vertical_edges = [("V", row, column), ("V", row, column + 1)]
         
         horizontal_edges = [("H", row, column),("H", row + 1, column)]
@@ -116,8 +116,75 @@ class Board:
             return True
         return False
 
-        
+    def get_vertex_status(self, state: SlitherlinkState, r_v: int, c_v: int):
+        """Recebe as coordenadas de um vértice (r_v, c_v) e devolve (ativas, livres)."""
+        active = 0
+        free = 0
 
+        if r_v > 0:
+            val = state.v_edges[r_v - 1][c_v]
+            if val == 1: active += 1
+            elif val == 0: free += 1
+
+        if r_v < self.rows:
+            val = state.v_edges[r_v][c_v]
+            if val == 1: active += 1
+            elif val == 0: free += 1
+
+        if c_v > 0:
+            val = state.h_edges[r_v][c_v - 1]
+            if val == 1: active += 1
+            elif val == 0: free += 1
+
+        if c_v < self.columns:
+            val = state.h_edges[r_v][c_v]
+            if val == 1: active += 1
+            elif val == 0: free += 1
+
+        return active, free
+
+    def is_ok_active(self, state: SlitherlinkState, edge: tuple):
+        """Verifica se é seguro ativar esta aresta."""
+        tipo, r_edge, c_edge = edge
+
+        if tipo == 'V':
+            r_v1, c_v1 = r_edge, c_edge
+            r_v2, c_v2 = r_edge + 1, c_edge
+        else:
+            r_v1, c_v1 = r_edge, c_edge
+            r_v2, c_v2 = r_edge, c_edge + 1
+
+        active_v1, free_v1 = self.get_vertex_status(state, r_v1, c_v1)
+        active_v2, free_v2 = self.get_vertex_status(state, r_v2, c_v2)
+
+
+        if active_v1 == 2 or active_v2 == 2:
+            return False
+
+        if (active_v1 == 0 and free_v1 == 1) or (active_v2 == 0 and free_v2 == 1):
+            return False
+
+        return True
+    
+    def is_ok_blocked(self, state: SlitherlinkState, edge: tuple):
+        """Verifica se é seguro ativar esta aresta."""
+        tipo, r_edge, c_edge = edge
+
+        if tipo == 'V':
+            r_v1, c_v1 = r_edge, c_edge
+            r_v2, c_v2 = r_edge + 1, c_edge
+        else:
+            r_v1, c_v1 = r_edge, c_edge
+            r_v2, c_v2 = r_edge, c_edge + 1
+
+        active_v1, free_v1 = self.get_vertex_status(state, r_v1, c_v1)
+        active_v2, free_v2 = self.get_vertex_status(state, r_v2, c_v2)
+
+
+        if (active_v1 == 1 and free_v1 == 1) or (active_v2 == 1 and free_v2 == 1):
+            return False
+        
+        return True
 
     @staticmethod
     def parse_instance():
@@ -170,9 +237,9 @@ class Slitherlink(Problem):
         self.gui = gui
         self.h_edges = board.h_edges
         self.v_edges = board.v_edges
-        SlitherlinkState(self.h_edges, self.v_edges)
-        # TODO
-        pass 
+        initial = SlitherlinkState(self.h_edges, self.v_edges)
+        super().__init__(initial)
+
 
 
     def actions(self, state: SlitherlinkState):
@@ -206,7 +273,7 @@ class Slitherlink(Problem):
                         if r_edge < self.board.rows:
                             is_down = not self.board.is_limit_reached(state, r_edge, c_edge)
                         
-                        if is_down and is_up:
+                        if is_down and is_up and self.board.is_ok_active(state, ('H', r_edge, c_edge)):
                             actions.append(('H', r_edge, c_edge, 1))
                         
                         is_up = True
@@ -221,7 +288,7 @@ class Slitherlink(Problem):
                             if cell != -1 and (self.board.get_unknown_edges(state, r_edge, c_edge) - 1) + (self.board.get_active_edges(state, r_edge, c_edge)) < cell:
                                 is_down = False
 
-                        if is_down and is_up:
+                        if is_down and is_up and self.board.is_ok_blocked(state, ('H', r_edge, c_edge)):
                             actions.append(('H', r_edge, c_edge, 2))
 
                         return actions
@@ -236,7 +303,7 @@ class Slitherlink(Problem):
                         if c_edge < self.board.columns:
                             is_right = not self.board.is_limit_reached(state, r_edge, c_edge)
 
-                        if is_left and is_right:
+                        if is_left and is_right and self.board.is_ok_active(state, ('V', r_edge, c_edge)):
                             actions.append(('V', r_edge, c_edge, 1))
 
                         is_left = True
@@ -251,7 +318,7 @@ class Slitherlink(Problem):
                             if cell != -1 and (self.board.get_unknown_edges(state, r_edge, c_edge) - 1) + (self.board.get_active_edges(state, r_edge, c_edge)) < cell:
                                 is_right = False
 
-                        if is_left and is_right:
+                        if is_left and is_right and self.board.is_ok_blocked(state, ('V', r_edge, c_edge)):
                             actions.append(('V', r_edge, c_edge, 2))
                         
                         return actions
@@ -286,10 +353,80 @@ class Slitherlink(Problem):
         """Retorna True se e só se o estado passado como argumento é
         um estado objetivo. Deve verificar se todas as posições do tabuleiro
         estão preenchidas de acordo com as regras do problema."""
-        #verificar que todas as celulas com numero têm o numero certo de arestas ativas
-        #verificar se o loop ta fechado 
-        # TODO
-        pass
+        #verifica se cada celula tem o numero correto de arrestas ativas
+        for r in range(self.board.rows):
+            for c in range(self.board.columns):
+                cell_value = self.board.board[r][c]
+                if cell_value != -1 and cell_value != self.board.get_active_edges(state, r, c):
+                    return False
+
+        #verifica se cada vertice tem 0 ou 2 arrestas ativas, loop fechado
+        act_edges_count = 0
+        for r in range(self.board.rows + 1):
+            for c in range(self.board.columns + 1):
+
+                active_edges, _ = self.board.get_vertex_status(state, r, c)
+                if active_edges not in (0, 2):
+                    return False
+                act_edges_count += active_edges
+
+        total_active_edges = act_edges_count // 2
+
+        #verifica se o tabuleiro não está vazio
+        if total_active_edges == 0:
+            return False
+
+        #verifica se o loop para além de fechado é contínuo
+        for r in range(self.board.rows + 1):
+            for c in range(self.board.columns + 1):
+
+                active_edges, _ = self.board.get_vertex_status(state, r, c)
+                if active_edges == 2:
+                    traveled_edges = set()
+                    current_v = (r, c)
+
+                    while True:
+                        r_v, c_v = current_v
+                        new_edge = None
+                        next_v = None
+
+                        if r_v > 0 and state.v_edges[r_v - 1][c_v] == 1:
+                            aresta = ('V', r_v - 1, c_v)
+                            if aresta not in traveled_edges:
+                                new_edge = aresta
+                                next_v = (r_v - 1, c_v)
+
+                        if r_v < self.board.rows and state.v_edges[r_v][c_v] == 1:
+                            aresta = ('V', r_v, c_v)
+                            if aresta not in traveled_edges:
+                                new_edge = aresta
+                                next_v = (r_v + 1, c_v)
+
+                        if c_v > 0 and state.h_edges[r_v][c_v - 1] == 1:
+                            aresta = ('H', r_v, c_v - 1)
+                            if aresta not in traveled_edges:
+                                new_edge = aresta
+                                next_v = (r_v, c_v - 1)
+
+                        if c_v < self.board.columns and state.h_edges[r_v][c_v] == 1:
+                            aresta = ('H', r_v, c_v)
+                            if aresta not in traveled_edges:
+                                new_edge = aresta
+                                next_v = (r_v, c_v + 1)
+
+                        if new_edge is not None:
+                            traveled_edges.add(new_edge)
+                            current_v = next_v
+
+                        else:
+                            break
+
+                    if total_active_edges != len(traveled_edges):
+                        return False
+                    else:
+                        return True
+                    
+        return False
 
     def h(self, node: Node):
         """Função heuristica utilizada para a procura A*."""
@@ -312,7 +449,7 @@ if __name__ == "__main__":
         print("\n=== A EXECUTAR TESTE DE 10 JOGADAS ===")
         estado_atual = state
 
-        for i in range(20):
+        for i in range(36):
             acoes_possiveis = problem.actions(estado_atual)
             print(acoes_possiveis)
             if not acoes_possiveis:
