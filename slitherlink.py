@@ -215,9 +215,9 @@ class Board:
     
     def is_ok_blocked(self, state: SlitherlinkState, edge: tuple):
         """Verifica se é seguro ativar esta aresta."""
-        tipo, r_edge, c_edge = edge
+        type, r_edge, c_edge = edge
 
-        if tipo == 'V':
+        if type == 'V':
             r_v1, c_v1 = r_edge, c_edge
             r_v2, c_v2 = r_edge + 1, c_edge
         else:
@@ -406,10 +406,12 @@ class Slitherlink(Problem):
                     is_safe_blocked = False
                     break
 
-        if is_safe_active and self.board.is_ok_active(state, best_edge):
+        best_edge_tuple = tuple(best_edge)
+
+        if is_safe_active and self.board.is_ok_active(state, best_edge_tuple):
             actions.append(tuple(best_edge + [1]))
                     
-        if is_safe_blocked and self.board.is_ok_blocked(state, best_edge):
+        if is_safe_blocked and self.board.is_ok_blocked(state, best_edge_tuple):
             actions.append(tuple(best_edge + [2]))
 
         return actions
