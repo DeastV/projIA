@@ -24,21 +24,20 @@ from search import (
     greedy_search,
     recursive_best_first_search,
 )
-# ── Coisas a Resolver ──────────────────────────────────────────────────────────
 
-# criar o sistema de por cruzes
 # ── SlitherlinkState ──────────────────────────────────────────────────────────
 
 class SlitherlinkState:
     state_id = 0
 
 
-    def __init__(self, h_edges, v_edges):
+    def __init__(self, h_edges, v_edges, h_value = None):
         self.id = SlitherlinkState.state_id
         SlitherlinkState.state_id += 1
         self.h_edges = h_edges
         self.v_edges = v_edges
-    
+        self.h_value = h_value
+
     def __lt__(self, other):
         return self.id < other.id
 
@@ -57,25 +56,48 @@ class Board:
         self.v_edges = tuple(tuple(0 for _ in range(self.columns + 1)) for _ in range(self.rows))
 
 
+
+    def in_bounds(self, kind: str, r: int, c: int) -> bool:
+        """Verifica se as coordenadas (r, c) estão dentro dos limites do tabuleiro, dependendo do tipo."""
+        if kind == 'cell':
+            r_valid = 0 <= r < self.rows
+            c_valid = 0 <= c < self.columns
+            return r_valid and c_valid
+        elif kind == 'h_edge':
+            r_valid = 0 <= r <= self.rows
+            c_valid = 0 <= c < self.columns
+            return r_valid and c_valid
+        elif kind == 'v_edge':
+            r_valid = 0 <= r < self.rows
+            c_valid = 0 <= c <= self.columns
+            return r_valid and c_valid
+        elif kind == 'vertex':
+            r_valid = 0 <= r <= self.rows
+            c_valid = 0 <= c <= self.columns
+            return r_valid and c_valid
+        else:
+            raise ValueError
+
+
     def adjacent_cell(self, cell:tuple) -> list:
         """Devolve uma lista das células que fazem
         fronteira com a célula enviada no argumento"""
         row, column =  cell
         adjacents = []
-        if row > 0:
+        if self.in_bounds('cell', row - 1, column):
             adjacents.append((self.board[row-1][column], row - 1, column))
-        if row < self.rows - 1:
+        if self.in_bounds('cell', row + 1, column):
             adjacents.append((self.board[row + 1][column], row + 1, column))
-        if column > 0:
+        if self.in_bounds('cell', row, column - 1):
             adjacents.append((self.board[row][column - 1], row, column - 1))
-        if column < self.columns - 1:
+        if self.in_bounds('cell', row, column + 1):
             adjacents.append((self.board[row][column + 1], row, column + 1))
         return adjacents
 
     def get_cell_edges(self, row:int, column:int) -> list:
         """Devolve os arestas da célula enviada no argumento"""
-        if row < 0 or column < 0 or row >= self.rows or column >= self.columns:
-            return [] #tem que devolver um erro
+        if not self.in_bounds('cell', row, column):
+            raise ValueError
         vertical_edges = [("V", row, column), ("V", row, column + 1)]
         
         horizontal_edges = [("H", row, column),("H", row + 1, column)]
@@ -121,22 +143,22 @@ class Board:
         active = 0
         free = 0
 
-        if r_v > 0:
+        if self.in_bounds('v_edge', r_v - 1, c_v):
             val = state.v_edges[r_v - 1][c_v]
             if val == 1: active += 1
             elif val == 0: free += 1
 
-        if r_v < self.rows:
+        if self.in_bounds('v_edge', r_v, c_v):
             val = state.v_edges[r_v][c_v]
             if val == 1: active += 1
             elif val == 0: free += 1
 
-        if c_v > 0:
+        if self.in_bounds('h_edge', r_v, c_v - 1):
             val = state.h_edges[r_v][c_v - 1]
             if val == 1: active += 1
             elif val == 0: free += 1
 
-        if c_v < self.columns:
+        if self.in_bounds('h_edge', r_v, c_v):
             val = state.h_edges[r_v][c_v]
             if val == 1: active += 1
             elif val == 0: free += 1
@@ -186,6 +208,17 @@ class Board:
         
         return True
 
+    def total_h_value(self) -> int:
+        '''Devolve a soma do valor de todas as células numeradas'''
+        counter = 0
+        for r in range(self.rows):
+            for c in range(self.columns):
+                cell = self.board[r][c]
+                if cell != -1:
+                    counter += cell
+
+        return counter 
+    
     @staticmethod
     def parse_instance():
         """Lê o test do standard input (stdin) que é passado como argumento
@@ -237,7 +270,7 @@ class Slitherlink(Problem):
         self.gui = gui
         self.h_edges = board.h_edges
         self.v_edges = board.v_edges
-        initial = SlitherlinkState(self.h_edges, self.v_edges)
+        initial = SlitherlinkState(self.h_edges, self.v_edges, h_value = self.board.total_h_value())
         super().__init__(initial)
 
 
@@ -257,12 +290,12 @@ class Slitherlink(Problem):
                     if type == 'H' and state.h_edges[r_edge][c_edge] == 0:
                         #Existe cima? Se sim verfica se o limite dessa celula ja foi alcançado
                         is_up = True
-                        if r_edge > 0:
+                        if self.board.in_bounds('cell', r_edge - 1, c_edge):
                             is_up = not self.board.is_limit_reached(state, r_edge - 1, c_edge)
 
                         #Existe baixo? Se sim verfica se o limite dessa celula ja foi alcançado
                         is_down = True
-                        if r_edge < self.board.rows:
+                        if self.board.in_bounds('cell', r_edge, c_edge):
                             is_down = not self.board.is_limit_reached(state, r_edge, c_edge)
                         
                         #Caso tudo esteja ok, adiciona a arresta a lista de açoes
@@ -271,14 +304,14 @@ class Slitherlink(Problem):
                         
                         #Existe cima? Se sim verifica se colocar um X a celula ainda é possivel de completar
                         is_up = True
-                        if r_edge > 0:
+                        if self.board.in_bounds('cell', r_edge - 1, c_edge):
                             cell = self.board.board[r_edge - 1][c_edge]
                             if cell != -1 and (self.board.get_unknown_edges(state, r_edge - 1, c_edge) - 1) + (self.board.get_active_edges(state, r_edge - 1, c_edge)) < cell:
                                 is_up = False
 
                         #Existe baixo? Se sim verifica se colocar um X a celula ainda é possivel de completar
                         is_down = True
-                        if r_edge < self.board.rows:
+                        if self.board.in_bounds('cell', r_edge, c_edge):
                             cell = self.board.board[r_edge][c_edge]
                             if cell != -1 and (self.board.get_unknown_edges(state, r_edge, c_edge) - 1) + (self.board.get_active_edges(state, r_edge, c_edge)) < cell:
                                 is_down = False
@@ -292,24 +325,24 @@ class Slitherlink(Problem):
                     elif type == 'V' and state.v_edges[r_edge][c_edge] == 0:
 
                         is_left = True
-                        if c_edge > 0:
+                        if self.board.in_bounds('cell', r_edge, c_edge - 1):
                             is_left = not self.board.is_limit_reached(state, r_edge, c_edge - 1)
 
                         is_right = True
-                        if c_edge < self.board.columns:
+                        if self.board.in_bounds('cell', r_edge, c_edge):
                             is_right = not self.board.is_limit_reached(state, r_edge, c_edge)
 
                         if is_left and is_right and self.board.is_ok_active(state, ('V', r_edge, c_edge)):
                             actions.append(('V', r_edge, c_edge, 1))
 
                         is_left = True
-                        if c_edge > 0:
+                        if self.board.in_bounds('cell', r_edge, c_edge - 1):
                             cell = self.board.board[r_edge][c_edge - 1]
                             if cell != -1 and (self.board.get_unknown_edges(state, r_edge, c_edge - 1) - 1) + (self.board.get_active_edges(state, r_edge, c_edge - 1)) < cell:
                                 is_left = False
 
                         is_right = True
-                        if c_edge < self.board.columns:
+                        if self.board.in_bounds('cell', r_edge, c_edge):
                             cell = self.board.board[r_edge][c_edge]
                             if cell != -1 and (self.board.get_unknown_edges(state, r_edge, c_edge) - 1) + (self.board.get_active_edges(state, r_edge, c_edge)) < cell:
                                 is_right = False
@@ -332,17 +365,38 @@ class Slitherlink(Problem):
         v_edges = [list(line) for line in state.v_edges]
 
         type, r_edge, c_edge, do = action
+        subtract = 0
+
+        up_cell    = self.board.board[r_edge - 1][c_edge] if self.board.in_bounds('cell', r_edge - 1, c_edge) else -1
+        down_left_cell = self.board.board[r_edge][c_edge] if self.board.in_bounds('cell', r_edge, c_edge)     else -1
+        right_cell = self.board.board[r_edge][c_edge - 1] if self.board.in_bounds('cell', r_edge, c_edge - 1) else -1
         
         if type == 'H':
+            if do == 1:
+                if (up_cell != -1 and down_left_cell == -1) or (up_cell == -1 and down_left_cell != -1):
+                    subtract += 1
+
+                elif(up_cell != -1 and down_left_cell != -1):
+                    subtract += 2
+
             h_edges[r_edge][c_edge] = do
 
         if type == 'V':
+            if do == 1:
+                if (right_cell != -1 and down_left_cell == -1) or (right_cell == -1 and down_left_cell != -1):
+                    subtract += 1
+                    
+                elif(right_cell != -1 and down_left_cell != -1):
+                    subtract += 2
+
             v_edges[r_edge][c_edge] = do
             
         h_edges_state = tuple(tuple(line) for line in h_edges)
         v_edges_state = tuple(tuple(line) for line in v_edges)
 
-        return SlitherlinkState(h_edges_state, v_edges_state)
+        new_h_value = (state.h_value if state.h_value is not None else 0) - subtract
+
+        return SlitherlinkState(h_edges_state, v_edges_state, new_h_value)
 
 
     def goal_test(self, state: SlitherlinkState):
@@ -386,25 +440,25 @@ class Slitherlink(Problem):
                         new_edge = None
                         next_v = None
 
-                        if r_v > 0 and state.v_edges[r_v - 1][c_v] == 1:
+                        if self.board.in_bounds('v_edge', r_v - 1, c_v) and state.v_edges[r_v - 1][c_v] == 1:
                             aresta = ('V', r_v - 1, c_v)
                             if aresta not in traveled_edges:
                                 new_edge = aresta
                                 next_v = (r_v - 1, c_v)
 
-                        if r_v < self.board.rows and state.v_edges[r_v][c_v] == 1:
+                        if self.board.in_bounds('v_edge', r_v, c_v) and state.v_edges[r_v][c_v] == 1:
                             aresta = ('V', r_v, c_v)
                             if aresta not in traveled_edges:
                                 new_edge = aresta
                                 next_v = (r_v + 1, c_v)
 
-                        if c_v > 0 and state.h_edges[r_v][c_v - 1] == 1:
+                        if self.board.in_bounds('h_edge', r_v, c_v - 1) and state.h_edges[r_v][c_v - 1] == 1:
                             aresta = ('H', r_v, c_v - 1)
                             if aresta not in traveled_edges:
                                 new_edge = aresta
                                 next_v = (r_v, c_v - 1)
 
-                        if c_v < self.board.columns and state.h_edges[r_v][c_v] == 1:
+                        if self.board.in_bounds('h_edge', r_v, c_v) and state.h_edges[r_v][c_v] == 1:
                             aresta = ('H', r_v, c_v)
                             if aresta not in traveled_edges:
                                 new_edge = aresta
@@ -427,8 +481,13 @@ class Slitherlink(Problem):
     def h(self, node: Node):
         """Função heuristica utilizada para a procura A*."""
         #Verifica se está mais próximo de chegar a uma solução
-        # TODO
-        pass
+        #cada celula contem um numero o objetivo para saber o quao 
+        #proximo estamos sera comparar com as arestas ativas nessas celulas
+        #ou seja uma celula 2, com 1 arresta ativa tera um valor de 2 - 1,
+        #assim um tabuleiro vazio tera um erro maximo e a cada arresta numa
+        #celula numerada traz o numero mais perto do objetivo
+        return node.state.h_value
+
 
 
 # ── __main__ ───────────────────────────────────────────────────────────────———
@@ -457,7 +516,7 @@ if __name__ == "__main__":
     else:
         initial_state = SlitherlinkState(board.h_edges, board.v_edges)
         problem = Slitherlink(board)
-        solution_node = breadth_first_tree_search(problem)
+        solution_node = astar_search(problem)
         if solution_node is None:
             print("Erro na solução")
         else:
