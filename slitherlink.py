@@ -167,9 +167,9 @@ class Board:
 
     def is_ok_active(self, state: SlitherlinkState, edge: tuple):
         """Verifica se é seguro ativar esta aresta."""
-        tipo, r_edge, c_edge = edge
+        type, r_edge, c_edge = edge
 
-        if tipo == 'V':
+        if type == 'V':
             r_v1, c_v1 = r_edge, c_edge
             r_v2, c_v2 = r_edge + 1, c_edge
         else:
@@ -185,6 +185,31 @@ class Board:
 
         if (active_v1 == 0 and free_v1 == 1) or (active_v2 == 0 and free_v2 == 1):
             return False
+        
+        if type == 'V' and state.v_edges[r_edge][c_edge] == 0:
+            # Existe esquerda? Se sim verfica se o limite dessa celula ja foi alcançado
+            is_left = True
+            if self.in_bounds('cell', r_edge, c_edge - 1):
+                is_left = not self.is_limit_reached(state, r_edge, c_edge - 1)
+            # Existe direita? Se sim verfica se o limite dessa celula ja foi alcançado
+            is_right = True
+            if self.in_bounds('cell', r_edge, c_edge):
+                is_right = not self.is_limit_reached(state, r_edge, c_edge)
+            # Caso um deles não esteja ok, retorna False
+            if not is_left or not is_right:
+                return False
+        elif type == 'H' and state.h_edges[r_edge][c_edge] == 0:
+            #Existe cima? Se sim verfica se o limite dessa celula ja foi alcançado
+            is_up = True
+            if self.in_bounds('cell', r_edge - 1, c_edge):
+                is_up = not self.is_limit_reached(state, r_edge - 1, c_edge)
+            #Existe baixo? Se sim verfica se o limite dessa celula ja foi alcançado
+            is_down = True
+            if self.in_bounds('cell', r_edge, c_edge):
+                is_down = not self.is_limit_reached(state, r_edge, c_edge)
+            #Caso um deles não esteja ok, retorna False
+            if not is_up or not is_down:
+                return False
 
         return True
     
@@ -205,7 +230,40 @@ class Board:
 
         if (active_v1 == 1 and free_v1 == 1) or (active_v2 == 1 and free_v2 == 1):
             return False
-        
+    
+        if type == 'V' and state.v_edges[r_edge][c_edge] == 0:
+            # Existe esquerda? Se sim verifica se colocar um X a celula ainda é possivel de completar
+            is_left = True
+            if self.in_bounds('cell', r_edge, c_edge - 1):
+                cell = self.board[r_edge][c_edge - 1]
+                if cell != -1 and (self.get_unknown_edges(state, r_edge, c_edge - 1) - 1) + (self.get_active_edges(state, r_edge, c_edge - 1)) < cell:
+                    is_left = False
+            # Existe direita? Se sim verifica se colocar um X a celula ainda é possivel de completar
+            is_right = True
+            if self.in_bounds('cell', r_edge, c_edge):
+                cell = self.board[r_edge][c_edge]
+                if cell != -1 and (self.get_unknown_edges(state, r_edge, c_edge) - 1) + (self.get_active_edges(state, r_edge, c_edge)) < cell:
+                    is_right = False
+            # Caso um deles não esteja ok, retorna False
+            if not is_left or not is_right:
+                return False
+        elif type == 'H' and self.h_edges[r_edge][c_edge] == 0:
+            #Existe cima? Se sim verifica se colocar um X a celula ainda é possivel de completar
+            is_up = True
+            if self.in_bounds('cell', r_edge - 1, c_edge):
+                cell = self.board[r_edge - 1][c_edge]
+                if cell != -1 and (self.get_unknown_edges(state, r_edge - 1, c_edge) - 1) + (self.get_active_edges(state, r_edge - 1, c_edge)) < cell:
+                    is_up = False
+            #Existe baixo? Se sim verifica se colocar um X a celula ainda é possivel de completar
+            is_down = True
+            if self.in_bounds('cell', r_edge, c_edge):
+                cell = self.board[r_edge][c_edge]
+                if cell != -1 and (self.get_unknown_edges(state, r_edge, c_edge) - 1) + (self.get_active_edges(state, r_edge, c_edge)) < cell:
+                    is_down = False
+            # Caso um deles não esteja ok, retorna False
+            if not is_up or not is_down:
+                return False
+
         return True
 
     def total_h_value(self) -> int:
@@ -355,75 +413,6 @@ class Slitherlink(Problem):
             actions.append(tuple(best_edge + [2]))
 
         return actions
-
-        """
-                    if type == 'H' and state.h_edges[r_edge][c_edge] == 0:
-                        #Existe cima? Se sim verfica se o limite dessa celula ja foi alcançado
-                        is_up = True
-                        if self.board.in_bounds('cell', r_edge - 1, c_edge):
-                            is_up = not self.board.is_limit_reached(state, r_edge - 1, c_edge)
-
-                        #Existe baixo? Se sim verfica se o limite dessa celula ja foi alcançado
-                        is_down = True
-                        if self.board.in_bounds('cell', r_edge, c_edge):
-                            is_down = not self.board.is_limit_reached(state, r_edge, c_edge)
-                        
-                        #Caso tudo esteja ok, adiciona a arresta a lista de açoes
-                        if is_down and is_up and self.board.is_ok_active(state, ('H', r_edge, c_edge)):
-                            actions.append(('H', r_edge, c_edge, 1))
-                        
-                        #Existe cima? Se sim verifica se colocar um X a celula ainda é possivel de completar
-                        is_up = True
-                        if self.board.in_bounds('cell', r_edge - 1, c_edge):
-                            cell = self.board.board[r_edge - 1][c_edge]
-                            if cell != -1 and (self.board.get_unknown_edges(state, r_edge - 1, c_edge) - 1) + (self.board.get_active_edges(state, r_edge - 1, c_edge)) < cell:
-                                is_up = False
-
-                        #Existe baixo? Se sim verifica se colocar um X a celula ainda é possivel de completar
-                        is_down = True
-                        if self.board.in_bounds('cell', r_edge, c_edge):
-                            cell = self.board.board[r_edge][c_edge]
-                            if cell != -1 and (self.board.get_unknown_edges(state, r_edge, c_edge) - 1) + (self.board.get_active_edges(state, r_edge, c_edge)) < cell:
-                                is_down = False
-
-                        #Caso tudo esteja ok, adiciona por X a lista de açoes
-                        if is_down and is_up and self.board.is_ok_blocked(state, ('H', r_edge, c_edge)):
-                            actions.append(('H', r_edge, c_edge, 2))
-
-                        return actions
-                    #exatamente a mesma logica porem para as Verticais
-                    elif type == 'V' and state.v_edges[r_edge][c_edge] == 0:
-
-                        is_left = True
-                        if self.board.in_bounds('cell', r_edge, c_edge - 1):
-                            is_left = not self.board.is_limit_reached(state, r_edge, c_edge - 1)
-
-                        is_right = True
-                        if self.board.in_bounds('cell', r_edge, c_edge):
-                            is_right = not self.board.is_limit_reached(state, r_edge, c_edge)
-
-                        if is_left and is_right and self.board.is_ok_active(state, ('V', r_edge, c_edge)):
-                            actions.append(('V', r_edge, c_edge, 1))
-
-                        is_left = True
-                        if self.board.in_bounds('cell', r_edge, c_edge - 1):
-                            cell = self.board.board[r_edge][c_edge - 1]
-                            if cell != -1 and (self.board.get_unknown_edges(state, r_edge, c_edge - 1) - 1) + (self.board.get_active_edges(state, r_edge, c_edge - 1)) < cell:
-                                is_left = False
-
-                        is_right = True
-                        if self.board.in_bounds('cell', r_edge, c_edge):
-                            cell = self.board.board[r_edge][c_edge]
-                            if cell != -1 and (self.board.get_unknown_edges(state, r_edge, c_edge) - 1) + (self.board.get_active_edges(state, r_edge, c_edge)) < cell:
-                                is_right = False
-
-                        if is_left and is_right and self.board.is_ok_blocked(state, ('V', r_edge, c_edge)):
-                            actions.append(('V', r_edge, c_edge, 2))
-                        
-                        return actions
-                    
-        return []
-    """
 
 
     def result(self, state: SlitherlinkState, action):
@@ -581,8 +570,6 @@ def print_official(board: Board, state: SlitherlinkState):
 if __name__ == "__main__":
     
     board = Board.parse_instance()
-
-    print("inicio do programa")
 
     if board is None:
         print("Erro ao ler o tabuleiro.")
