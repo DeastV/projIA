@@ -276,17 +276,87 @@ class Slitherlink(Problem):
 
     def actions(self, state: SlitherlinkState):
         """Retorna uma lista de ações que podem ser executadas a
-        partir do estado passado como argumento."""        
+        partir do estado passado como argumento."""    
+
+        best_free_count = 5
+        best_edge = None
+
         for r in range(self.board.rows):
             for c in range(self.board.columns):
                 
+                cell_value = self.board.board[r][c]
                 cell_edges = self.board.get_cell_edges(r, c)
-                
 
-                for type, r_edge, c_edge in cell_edges:
+                if cell_value != -1:
+                    unknown_count = self.board.get_unknown_edges(state, r, c)
 
-                    actions = []
+                    if 0 < unknown_count < best_free_count:
+                        best_free_count = unknown_count
+
+                        for type, r_edge, c_edge in cell_edges:
+                            if type == 'H' and state.h_edges[r_edge][c_edge] == 0:
+                                best_edge = ['H', r_edge, c_edge]
+                                break
+                            elif type == 'V' and state.v_edges[r_edge][c_edge] == 0:
+                                best_edge = ['V', r_edge, c_edge]
+                                break
+        
+        if best_edge is None:
+            for r in range(self.board.rows + 1):
+                for c in range(self.board.columns + 1):
+                    if c < self.board.columns and state.h_edges[r][c] == 0:
+                        best_edge = ['H', r, c]
+                        break
+                    elif r < self.board.rows and state.v_edges[r][c] == 0:   
+                        best_edge = ['V', r, c]
+                        break 
+                if best_edge:
+                    break
+        
+        if best_edge is None:
+            return []
+
+        actions = []
+
+        type, r_edge, c_edge = best_edge[0], best_edge[1], best_edge[2]
+        is_safe_active = True
+        is_safe_blocked = True
+
+        adjacent_cells = []
+        if type == 'H':
+            if self.board.in_bounds('cell', r_edge - 1, c_edge):
+                adjacent_cells.append((r_edge - 1, c_edge))
+            if self.board.in_bounds('cell', r_edge, c_edge):
+                adjacent_cells.append((r_edge, c_edge))
+        else:
+            if self.board.in_bounds('cell', r_edge, c_edge - 1):
+                adjacent_cells.append((r_edge, c_edge - 1))
+            if self.board.in_bounds('cell', r_edge, c_edge):
+                adjacent_cells.append((r_edge, c_edge))
+
+        for r_cell, c_cell in adjacent_cells:
+            if self.board.is_limit_reached(state, r_cell, c_cell):
+                is_safe_active = False
+                break
+
+        for r_cell, c_cell in adjacent_cells:
+            cell_value = self.board.board[r_cell][c_cell]
+            if cell_value != -1:
+                active = self.board.get_active_edges(state, r_cell, c_cell)
+                unknown = self.board.get_unknown_edges(state, r_cell, c_cell)
+                if active + unknown - 1 < cell_value:
+                    is_safe_blocked = False
+                    break
+
+        if is_safe_active and self.board.is_ok_active(state, best_edge):
+            actions.append(tuple(best_edge + [1]))
                     
+        if is_safe_blocked and self.board.is_ok_blocked(state, best_edge):
+            actions.append(tuple(best_edge + [2]))
+
+        return actions
+
+        """
                     if type == 'H' and state.h_edges[r_edge][c_edge] == 0:
                         #Existe cima? Se sim verfica se o limite dessa celula ja foi alcançado
                         is_up = True
@@ -353,7 +423,7 @@ class Slitherlink(Problem):
                         return actions
                     
         return []
-    
+    """
 
 
     def result(self, state: SlitherlinkState, action):
@@ -396,6 +466,7 @@ class Slitherlink(Problem):
 
         new_h_value = (state.h_value if state.h_value is not None else 0) - subtract
 
+        print(f"Action: {action}, h_value: {new_h_value}")
         return SlitherlinkState(h_edges_state, v_edges_state, new_h_value)
 
 
@@ -511,12 +582,14 @@ if __name__ == "__main__":
     
     board = Board.parse_instance()
 
+    print("inicio do programa")
+
     if board is None:
         print("Erro ao ler o tabuleiro.")
     else:
         initial_state = SlitherlinkState(board.h_edges, board.v_edges)
         problem = Slitherlink(board)
-        solution_node = astar_search(problem)
+        solution_node = depth_first_tree_search(problem)
         if solution_node is None:
             print("Erro na solução")
         else:
