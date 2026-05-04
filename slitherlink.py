@@ -169,6 +169,11 @@ class Board:
         """Verifica se é seguro ativar esta aresta."""
         type, r_edge, c_edge = edge
 
+        if type == 'V' and state.v_edges[r_edge][c_edge] != 0:
+            return False
+        if type == 'H' and state.h_edges[r_edge][c_edge] != 0:
+            return False
+        
         if type == 'V':
             r_v1, c_v1 = r_edge, c_edge
             r_v2, c_v2 = r_edge + 1, c_edge
@@ -185,8 +190,9 @@ class Board:
 
         if (active_v1 == 0 and free_v1 == 1) or (active_v2 == 0 and free_v2 == 1):
             return False
+
         
-        if type == 'V' and state.v_edges[r_edge][c_edge] == 0:
+        if type == 'V':
             # Existe esquerda? Se sim verfica se o limite dessa celula ja foi alcançado
             is_left = True
             if self.in_bounds('cell', r_edge, c_edge - 1):
@@ -198,7 +204,7 @@ class Board:
             # Caso um deles não esteja ok, retorna False
             if not is_left or not is_right:
                 return False
-        elif type == 'H' and state.h_edges[r_edge][c_edge] == 0:
+        elif type == 'H':
             #Existe cima? Se sim verfica se o limite dessa celula ja foi alcançado
             is_up = True
             if self.in_bounds('cell', r_edge - 1, c_edge):
@@ -217,6 +223,11 @@ class Board:
         """Verifica se é seguro ativar esta aresta."""
         type, r_edge, c_edge = edge
 
+        if type == 'V' and state.v_edges[r_edge][c_edge] != 0:
+            return False
+        if type == 'H' and state.h_edges[r_edge][c_edge] != 0:
+            return False
+        
         if type == 'V':
             r_v1, c_v1 = r_edge, c_edge
             r_v2, c_v2 = r_edge + 1, c_edge
@@ -231,7 +242,7 @@ class Board:
         if (active_v1 == 1 and free_v1 == 1) or (active_v2 == 1 and free_v2 == 1):
             return False
     
-        if type == 'V' and state.v_edges[r_edge][c_edge] == 0:
+        if type == 'V':
             # Existe esquerda? Se sim verifica se colocar um X a celula ainda é possivel de completar
             is_left = True
             if self.in_bounds('cell', r_edge, c_edge - 1):
@@ -247,7 +258,7 @@ class Board:
             # Caso um deles não esteja ok, retorna False
             if not is_left or not is_right:
                 return False
-        elif type == 'H' and self.h_edges[r_edge][c_edge] == 0:
+        elif type == 'H':
             #Existe cima? Se sim verifica se colocar um X a celula ainda é possivel de completar
             is_up = True
             if self.in_bounds('cell', r_edge - 1, c_edge):
@@ -265,7 +276,7 @@ class Board:
                 return False
 
         return True
-
+    
     def total_h_value(self) -> int:
         '''Devolve a soma do valor de todas as células numeradas'''
         counter = 0
