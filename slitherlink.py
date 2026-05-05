@@ -388,8 +388,6 @@ class Slitherlink(Problem):
         actions = []
 
         type, r_edge, c_edge = best_edge[0], best_edge[1], best_edge[2]
-        is_safe_active = True
-        is_safe_blocked = True
 
         adjacent_cells = []
         if type == 'H':
@@ -403,26 +401,12 @@ class Slitherlink(Problem):
             if self.board.in_bounds('cell', r_edge, c_edge):
                 adjacent_cells.append((r_edge, c_edge))
 
-        for r_cell, c_cell in adjacent_cells:
-            if self.board.is_limit_reached(state, r_cell, c_cell):
-                is_safe_active = False
-                break
-
-        for r_cell, c_cell in adjacent_cells:
-            cell_value = self.board.board[r_cell][c_cell]
-            if cell_value != -1:
-                active = self.board.get_active_edges(state, r_cell, c_cell)
-                unknown = self.board.get_unknown_edges(state, r_cell, c_cell)
-                if active + unknown - 1 < cell_value:
-                    is_safe_blocked = False
-                    break
-
         best_edge_tuple = tuple(best_edge)
 
-        if is_safe_active and self.board.is_ok_active(state, best_edge_tuple):
+        if self.board.is_ok_active(state, best_edge_tuple):
             actions.append(tuple(best_edge + [1]))
                     
-        if is_safe_blocked and self.board.is_ok_blocked(state, best_edge_tuple):
+        if self.board.is_ok_blocked(state, best_edge_tuple):
             actions.append(tuple(best_edge + [2]))
 
         return actions
