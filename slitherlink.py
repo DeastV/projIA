@@ -191,7 +191,19 @@ class Board:
         if (active_v1 == 0 and free_v1 == 1) or (active_v2 == 0 and free_v2 == 1):
             return False
 
-        
+        # Verifica se ativar esta aresta fecharia um loop prematuro:
+        # só existe loop prematuro se v1 e v2 já estiverem ligados pelo caminho ativo
+        # (a travessia a partir de v1 termina em v2).
+        # Se não estiverem ligados, ligar a aresta une dois caminhos — é válido.
+        if active_v1 == 1 and active_v2 == 1:
+            traveled, end_v = self.traverse_loop(state, (r_v1, c_v1))
+            if end_v == (r_v2, c_v2):
+                total_active = self.count_active_edges(state)
+                if len(traveled) < total_active:\
+                    return False  # não cobre todas as arestas ativas
+                if (len(traveled) + 1) * 2 < self.total_h_value():
+                    return False  # loop demasiado pequeno para as células
+
         if type == 'V':
             # Existe esquerda? Se sim verfica se o limite dessa celula ja foi alcançado
             is_left = True
@@ -277,6 +289,58 @@ class Board:
 
         return True
     
+    def count_active_edges(self, state: SlitherlinkState) -> int:
+        """Conta o total de arestas ativas no estado."""
+        total = 0
+        for row in state.h_edges:
+            total += sum(1 for v in row if v == 1)
+        for row in state.v_edges:
+            total += sum(1 for v in row if v == 1)
+        return total
+
+    def traverse_loop(self, state: SlitherlinkState, start_v: tuple) -> tuple:
+        """Percorre o loop/caminho a partir do vértice start_v seguindo arestas ativas.
+        Devolve (set de arestas percorridas, vértice final)."""
+        traveled_edges = set()
+        current_v = start_v
+
+        while True:
+            r_v, c_v = current_v
+            new_edge = None
+            next_v = None
+
+            if self.in_bounds('v_edge', r_v - 1, c_v) and state.v_edges[r_v - 1][c_v] == 1:
+                aresta = ('V', r_v - 1, c_v)
+                if aresta not in traveled_edges:
+                    new_edge = aresta
+                    next_v = (r_v - 1, c_v)
+
+            if self.in_bounds('v_edge', r_v, c_v) and state.v_edges[r_v][c_v] == 1:
+                aresta = ('V', r_v, c_v)
+                if aresta not in traveled_edges:
+                    new_edge = aresta
+                    next_v = (r_v + 1, c_v)
+
+            if self.in_bounds('h_edge', r_v, c_v - 1) and state.h_edges[r_v][c_v - 1] == 1:
+                aresta = ('H', r_v, c_v - 1)
+                if aresta not in traveled_edges:
+                    new_edge = aresta
+                    next_v = (r_v, c_v - 1)
+
+            if self.in_bounds('h_edge', r_v, c_v) and state.h_edges[r_v][c_v] == 1:
+                aresta = ('H', r_v, c_v)
+                if aresta not in traveled_edges:
+                    new_edge = aresta
+                    next_v = (r_v, c_v + 1)
+
+            if new_edge is not None:
+                traveled_edges.add(new_edge)
+                current_v = next_v
+            else:
+                break
+
+        return traveled_edges, current_v
+
     def total_h_value(self) -> int:
         '''Devolve a soma do valor de todas as células numeradas'''
         counter = 0
@@ -345,7 +409,35 @@ class Slitherlink(Problem):
 
     def actions(self, state: SlitherlinkState):
         """Retorna uma lista de ações que podem ser executadas a
-        partir do estado passado como argumento."""    
+        partir do estado passado como argumento."""
+
+        # Percorre todas as arestas desconhecidas. Se alguma tiver apenas uma
+        # opção válida (só ativar ou só bloquear), devolve-a imediatamente
+        for r in range(self.board.rows + 1):
+            for c in range(self.board.columns + 1):
+                if c < self.board.columns:
+                    edge = ('H', r, c)
+                    if state.h_edges[r][c] == 0:
+                        can_active  = self.board.is_ok_active(state, edge)
+                        can_blocked = self.board.is_ok_blocked(state, edge)
+                        if not can_active and not can_blocked:
+                            return []           # estado inválido, poda
+                        if can_active and not can_blocked:
+                            return [('H', r, c, 1)]   # forçado: ativar
+                        if can_blocked and not can_active:
+                            return [('H', r, c, 2)]   # forçado: bloquear
+
+                if r < self.board.rows:
+                    edge = ('V', r, c)
+                    if state.v_edges[r][c] == 0:
+                        can_active  = self.board.is_ok_active(state, edge)
+                        can_blocked = self.board.is_ok_blocked(state, edge)
+                        if not can_active and not can_blocked:
+                            return []           # estado inválido, poda
+                        if can_active and not can_blocked:
+                            return [('V', r, c, 1)]   # forçado: ativar
+                        if can_blocked and not can_active:
+                            return [('V', r, c, 2)]   # forçado: bloquear
 
         best_free_count = 5
         best_edge = None
@@ -471,7 +563,6 @@ class Slitherlink(Problem):
         act_edges_count = 0
         for r in range(self.board.rows + 1):
             for c in range(self.board.columns + 1):
-
                 active_edges, _ = self.board.get_vertex_status(state, r, c)
                 if active_edges not in (0, 2):
                     return False
@@ -486,54 +577,22 @@ class Slitherlink(Problem):
         #verifica se o loop para além de fechado é contínuo
         for r in range(self.board.rows + 1):
             for c in range(self.board.columns + 1):
-
                 active_edges, _ = self.board.get_vertex_status(state, r, c)
                 if active_edges == 2:
-                    traveled_edges = set()
-                    current_v = (r, c)
+                    traveled_edges, _ = self.board.traverse_loop(state, (r, c))
+                    return total_active_edges == len(traveled_edges)
 
-                    while True:
-                        r_v, c_v = current_v
-                        new_edge = None
-                        next_v = None
-
-                        if self.board.in_bounds('v_edge', r_v - 1, c_v) and state.v_edges[r_v - 1][c_v] == 1:
-                            aresta = ('V', r_v - 1, c_v)
-                            if aresta not in traveled_edges:
-                                new_edge = aresta
-                                next_v = (r_v - 1, c_v)
-
-                        if self.board.in_bounds('v_edge', r_v, c_v) and state.v_edges[r_v][c_v] == 1:
-                            aresta = ('V', r_v, c_v)
-                            if aresta not in traveled_edges:
-                                new_edge = aresta
-                                next_v = (r_v + 1, c_v)
-
-                        if self.board.in_bounds('h_edge', r_v, c_v - 1) and state.h_edges[r_v][c_v - 1] == 1:
-                            aresta = ('H', r_v, c_v - 1)
-                            if aresta not in traveled_edges:
-                                new_edge = aresta
-                                next_v = (r_v, c_v - 1)
-
-                        if self.board.in_bounds('h_edge', r_v, c_v) and state.h_edges[r_v][c_v] == 1:
-                            aresta = ('H', r_v, c_v)
-                            if aresta not in traveled_edges:
-                                new_edge = aresta
-                                next_v = (r_v, c_v + 1)
-
-                        if new_edge is not None:
-                            traveled_edges.add(new_edge)
-                            current_v = next_v
-
-                        else:
-                            break
-
-                    if total_active_edges != len(traveled_edges):
-                        return False
-                    else:
-                        return True
-                    
         return False
+
+    def vertex_heuristics(self, state: SlitherlinkState):
+        counter = 0
+        for r in range(self.board.rows + 1):
+            for c in range(self.board.columns + 1):
+                active_edges, _ = self.board.get_vertex_status(state, r, c)
+                if active_edges == 1:
+                    counter += 1
+        return counter
+
 
     def h(self, node: Node):
         """Função heuristica utilizada para a procura A*."""
@@ -543,7 +602,8 @@ class Slitherlink(Problem):
         #ou seja uma celula 2, com 1 arresta ativa tera um valor de 2 - 1,
         #assim um tabuleiro vazio tera um erro maximo e a cada arresta numa
         #celula numerada traz o numero mais perto do objetivo
-        return node.state.h_value
+
+        return max(node.state.h_value, self.vertex_heuristics(node.state))
 
 
 
