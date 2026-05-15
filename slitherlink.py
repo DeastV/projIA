@@ -199,7 +199,7 @@ class Board:
             traveled, end_v = self.traverse_loop(state, (r_v1, c_v1))
             if end_v == (r_v2, c_v2):
                 total_active = self.count_active_edges(state)
-                if len(traveled) < total_active:\
+                if len(traveled) < total_active:
                     return False  # não cobre todas as arestas ativas
                 if (len(traveled) + 1) * 2 < self.total_h_value():
                     return False  # loop demasiado pequeno para as células
@@ -415,9 +415,7 @@ class Slitherlink(Problem):
                 if self.board.board[r][c] == 0:
                     if self.board.get_unknown_edges(state, r, c) > 0:
                         return [("0", r, c, 2)]
-
-
-            
+                    
         # Percorre todas as arestas desconhecidas. Se alguma tiver apenas uma
         # opção válida (só ativar ou só bloquear), devolve-a imediatamente
         for r in range(self.board.rows + 1):
@@ -549,7 +547,7 @@ class Slitherlink(Problem):
 
         new_h_value = (state.h_value if state.h_value is not None else 0) - subtract
 
-        print(f"Action: {action}, h_value: {new_h_value}")
+        #print(f"Action: {action}, h_value: {new_h_value}")
         return SlitherlinkState(h_edges_state, v_edges_state, new_h_value)
 
 
@@ -627,21 +625,15 @@ def print_official(board: Board, state: SlitherlinkState):
                 return 1 if v == 1 else 0
             
             linha.append(f"{normaliza(top)}{normaliza(right)}{normaliza(bottom)}{normaliza(left)}")
-        print(" ".join(linha))
+        print("\t".join(linha))
 
 if __name__ == "__main__":
     
     board = Board.parse_instance()
 
-    if board is None:
-        print("Erro ao ler o tabuleiro.")
-    else:
+    if board is not None:
         initial_state = SlitherlinkState(board.h_edges, board.v_edges)
-        problem = Slitherlink(board)
+        problem = Slitherlink(board)  
         solution_node = depth_first_tree_search(problem)
-        if solution_node is None:
-            print("Erro na solução")
-        else:
-            solution_state = solution_node.state
-            path = solution_node.path()
-            print_official(board, solution_state)
+        if solution_node is not None:
+            print_official(board, solution_node.state)
