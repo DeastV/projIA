@@ -32,19 +32,15 @@ Slitherlink is played on a rectangular grid of dots. Some cells in the grid cont
   * **Vertex Constraints:** Any grid vertex connected to an active edge must connect to exactly two active edges (degree 2 constraint), preventing branches or dead ends.
   * **Loop Consistency:** The solution must form exactly one single closed cycle covering all active edges (no isolated sub-loops).
 
-### 2. Pre-Search Static Inference & Arc Consistency
-Similar to Forward Checking and AC-3, static deduction rules are applied to the initial board to collapse the search space before exploration:
-* **Zeros:** A cell with `0` immediately marks all 4 surrounding edges as blocked.
-* **Corners & Diagonals:** Common boundary patterns (e.g. adjacent `3`s, corner constraints) propagate deterministic edge placements at near-zero computational cost.
+### 2. Board Pre-Processing & Inference
+Before tree search expansion, the solver applies deterministic deductions directly to reduce state permutations:
+* **Zero-Cell Suppression:** Cells with target `0` immediately flag all 4 incident edges as blocked (`BLOCKED`).
+* **Boundary Validation:** Boundary and corner edges are verified against adjacent cell limits to prune invalid states early.
 
-### 3. MRV (Minimum Remaining Values) Heuristic
-During search tree expansion, naive branch selection leads to exponential branching factors. The solver enforces the **Fail-First Principle** using the **MRV heuristic**:
-* Chooses cells with the minimum number of unassigned edges to branch on first.
-* Forces contradictory states to fail early in the tree, drastically pruning invalid search branches before deep exploration.
-
-### 4. Backtracking DFS Engine
-* Utilizes Depth-First Search with state immutability / deep copying to maintain pristine backtrack points.
-* Memory efficiency: Maintains linear space complexity $\mathcal{O}(d)$ relative to search depth, resolving grids up to 15x15 without memory exhaustion.
+### 3. Search Engine & Consistency Checks
+* **Tree Search Formulation:** Formulated on top of the search framework (`depth_first_tree_search`), exploring assignments to grid edges.
+* **Vertex Degree Enforcing:** Validates that no explored vertex exceeds degree 2 or becomes a dead-end with degree 1 during search expansion (`is_ok_active`, `is_ok_blocked`).
+* **Single Closed Loop Validation:** `traverse_loop` walks active edges from the first connected vertex to ensure the final state forms exactly one unbroken cycle matching the required cell numbers.
 
 ---
 
@@ -109,19 +105,25 @@ python3 slitherlink_gui.py
 
 ---
 
-## Benchmark Results
+## Benchmark Instances
 
-| Instance | Grid Size | Algorithm | Nodes Expanded | Status |
-| :--- | :--- | :--- | :--- | :--- |
-| `test01` | 4x4 | DFS + MRV | < 50 | Solved (< 0.1s) |
-| `test02` | 6x6 | DFS + MRV | < 200 | Solved (< 0.2s) |
-| `test03` | 10x10 | DFS + MRV | ~ 1,500 | Solved (< 1.5s) |
+The repository includes a suite of test boards in `slitherlink-boards-public/`:
+* `test01.txt` (4x4 introductory board)
+* `test02.txt` (6x6 intermediate board)
+* `test03.txt` to `test09.txt` (varying grid sizes and constraint distributions)
+
+Run any board file directly through the solver pipeline:
+```bash
+python3 slitherlink.py < slitherlink-boards-public/test01.txt
+```
 
 ---
 
-## Authors
+## Authors & Acknowledgments
 
 * **David Vasques** ([@DeastV](https://github.com/DeastV))
 * **Leonor Machado** ([@leonormm](https://github.com/leonormm))
 
-*Instituto Superior Técnico — Universidade de Lisboa (2025/2026)*
+Collaborative group project developed for Inteligência Artificial at Instituto Superior Técnico, Universidade de Lisboa.
+
+*Course-Provided Resources:* The generic search harness (`search.py`), data structures (`utils.py`), and test benchmark boards (`slitherlink-boards-public/`) were provided by the Inteligência Artificial teaching staff. The MIT License applies to the Slitherlink CSP formulation, domain consistency checks, cycle traversal logic, and the interactive Tkinter GUI (`slitherlink_gui.py`).
