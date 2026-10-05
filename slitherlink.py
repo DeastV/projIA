@@ -1,11 +1,9 @@
 #!/usr/bin/env python3
-# slitherlink.py: Template para implementação do projeto de Inteligência Artificial 2025/2026.
-# Devem alterar as classes e funções neste ficheiro de acordo com as instruções do enunciado.
-# Além das funções e classes sugeridas, podem acrescentar outras que considerem pertinentes.
+"""
+Slitherlink Puzzle Solver (Constraint Satisfaction Problem)
+Authors: Leonor Machado, David Vasques
+"""
 
-# Grupo 19:
-# 113779 Leonor Machado
-# 113931 David Vasques
 
 
 import random, copy
