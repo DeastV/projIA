@@ -1,15 +1,12 @@
-# Slitherlink AI Solver — Intelligent Puzzle Resolution
+# Slitherlink Puzzle Solver
 
 [![Language](https://img.shields.io/badge/Language-Python%203-blue.svg)](https://www.python.org/)
-[![Field](https://img.shields.io/badge/Field-Artificial%20Intelligence-purple.svg)]()
-[![Method](https://img.shields.io/badge/Search-DFS%20%2B%20MRV%20Heuristic-green.svg)]()
-[![Paradigm](https://img.shields.io/badge/Formulation-CSP%20%26%20Arc%20Consistency-orange.svg)]()
-[![GUI](https://img.shields.io/badge/UI-Tkinter%20GUI-yellow.svg)]()
+[![UI](https://img.shields.io/badge/UI-Tkinter-yellow.svg)]()
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-An intelligent, high-performance automated solver for the NP-complete puzzle **Slitherlink**, developed in Python as part of the **Artificial Intelligence (Inteligência Artificial)** course at **Instituto Superior Técnico (IST), Universidade de Lisboa**.
+An automated solver for the NP-complete puzzle **Slitherlink**, developed in Python as part of the **Artificial Intelligence (Inteligência Artificial)** course at **Instituto Superior Técnico (IST), Universidade de Lisboa**.
 
-The solver models the problem as a **Constraint Satisfaction Problem (CSP)** and solves it using an optimized **Backtracking Depth-First Search (DFS)** augmented with static pattern inference, arc consistency, and the **Minimum Remaining Values (MRV)** heuristic.
+The solver models the problem as a **Constraint Satisfaction Problem (CSP)** and solves it using **Depth-First Tree Search (DFS)** augmented with zero-cell suppression, vertex degree consistency validation, and closed loop traversal.
 
 ---
 
@@ -119,11 +116,14 @@ python3 slitherlink.py < slitherlink-boards-public/test01.txt
 
 ---
 
-## Authors & Acknowledgments
+## Known Limitations
 
-* **David Vasques** ([@DeastV](https://github.com/DeastV))
-* **Leonor Machado** ([@leonormm](https://github.com/leonormm))
+* **Heuristic Propagation Scope:** Edge assignment deductions propagate through localized vertex and cell boundary constraints without full AC-3 domain reduction across non-adjacent cells.
+* **Search Space on Sparse Boards:** Large boards with few numerical hints exhibit wider branching factors during DFS exploration compared to tightly constrained instances.
 
-Collaborative group project developed for Inteligência Artificial at Instituto Superior Técnico, Universidade de Lisboa.
+---
 
-*Course-Provided Resources:* The generic search harness (`search.py`), data structures (`utils.py`), and test benchmark boards (`slitherlink-boards-public/`) were provided by the Inteligência Artificial teaching staff. The MIT License applies to the Slitherlink CSP formulation, domain consistency checks, cycle traversal logic, and the interactive Tkinter GUI (`slitherlink_gui.py`).
+## Credits
+
+* **David Vasques** ([@DeastV](https://github.com/DeastV)), **Leonor Machado** ([@leonormm](https://github.com/leonormm))
+* Collaborative group coursework developed for Inteligência Artificial at Instituto Superior Técnico, Universidade de Lisboa. Generic search harness (`search.py`), utilities (`utils.py`), and test instances (`slitherlink-boards-public/`) provided by the teaching staff.
